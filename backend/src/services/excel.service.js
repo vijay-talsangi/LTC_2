@@ -89,7 +89,7 @@ export const parseFacultySheet = (filePath) => {
     const sheetName = workbook.SheetNames[0];
     const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
       defval: null,
-      raw: false,
+      raw: true,
     });
 
     const data   = [];
@@ -140,7 +140,7 @@ export const parseStudentSheet = (filePath) => {
     const sheetName = workbook.SheetNames[0];
     const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
       defval: null,
-      raw: false,
+      raw: true,
     });
 
     const data   = [];

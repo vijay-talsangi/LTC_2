@@ -3,8 +3,25 @@ import { findUserByEmail } from '../models/user.model.js';
 import { findFacultyByUserId } from '../models/faculty.model.js';
 import { findStudentByUserId } from '../models/student.model.js';
 import { signToken } from '../config/jwt.js';
+import { formatDOBPassword } from '../utils/helpers.js';
 import { AppError } from '../middleware/error.middleware.js';
 import { logger } from '../utils/logger.js';
+
+const buildPasswordCandidates = (password) => {
+  const candidates = new Set();
+  const plain = String(password || '').trim();
+  if (plain) candidates.add(plain);
+
+  const normalizedFromDate = formatDOBPassword(plain);
+  if (normalizedFromDate) candidates.add(normalizedFromDate);
+
+  const compactDigits = plain.replace(/\D/g, '');
+  if (compactDigits.length === 8) {
+    candidates.add(compactDigits);
+  }
+
+  return [...candidates];
+};
 
 export const login = async (req, res, next) => {
   try {
@@ -15,7 +32,17 @@ export const login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const passwordCandidates = buildPasswordCandidates(password);
+    let isMatch = false;
+
+    for (const candidate of passwordCandidates) {
+      // Stop after first valid password candidate.
+      if (await bcrypt.compare(candidate, user.password)) {
+        isMatch = true;
+        break;
+      }
+    }
+
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
