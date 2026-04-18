@@ -16,8 +16,44 @@ export const excelSerialToDate = (serial) => {
 const parseDOB = (dob) => {
   if (!dob) return null;
   if (dob instanceof Date) return isNaN(dob) ? null : dob;
-  if (typeof dob === 'number') return excelSerialToDate(dob);
-  const d = new Date(dob);
+  if (typeof dob === 'number') {
+    // Handle both Excel serial values and YYYYMMDD-like numeric input.
+    if (dob > 10_000_000) {
+      const str = String(Math.trunc(dob));
+      const yyyy = Number(str.slice(0, 4));
+      const mm = Number(str.slice(4, 6));
+      const dd = Number(str.slice(6, 8));
+      const d = new Date(yyyy, mm - 1, dd);
+      return isNaN(d) ? null : d;
+    }
+    return excelSerialToDate(dob);
+  }
+
+  const raw = String(dob).trim();
+  if (!raw) return null;
+
+  // Prefer deterministic day-first parsing for separator-based DOB strings.
+  const dmyMatch = raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  if (dmyMatch) {
+    const dd = Number(dmyMatch[1]);
+    const mm = Number(dmyMatch[2]);
+    const yy = Number(dmyMatch[3]);
+    const yyyy = yy < 100 ? 2000 + yy : yy;
+    const d = new Date(yyyy, mm - 1, dd);
+    return isNaN(d) ? null : d;
+  }
+
+  // Support compact DOB values like DDMMYYYY.
+  const compact = raw.replace(/\D/g, '');
+  if (compact.length === 8) {
+    const dd = Number(compact.slice(0, 2));
+    const mm = Number(compact.slice(2, 4));
+    const yyyy = Number(compact.slice(4, 8));
+    const d = new Date(yyyy, mm - 1, dd);
+    return isNaN(d) ? null : d;
+  }
+
+  const d = new Date(raw);
   return isNaN(d) ? null : d;
 };
 
